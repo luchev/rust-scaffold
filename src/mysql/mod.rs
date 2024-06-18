@@ -10,7 +10,7 @@ use log::info;
 use mock::MysqlMock;
 use mysql::Mysql;
 use runtime_injector::{
-    interface, InjectResult, Injector, Provider, RequestInfo, Service, ServiceInfo, SingletonProvider, Svc
+    interface, DynSvc, InjectResult, Injector, Provider, RequestInfo, Service, ServiceInfo, Svc,
 };
 
 #[async_trait]
@@ -26,46 +26,35 @@ interface! {
     ]
 }
 
-// impl ServiceFactory<()> for MysqlProvider {
-//     type Result = Svc<dyn IMysql>;
+#[derive(Default)]
+pub struct MysqlProvider {
+    result: Option<DynSvc>,
+}
 
-//     fn invoke(
-//         &mut self,
-//         injector: &Injector,
-//         _request_info: &RequestInfo,
-//     ) -> InjectResult<Self::Result> {
-//         let config = injector.get::<Svc<dyn IConfig>>()?.storage();
-
-//         match config {
-//             Storage::Mock => {
-//                 info!("using mysql mock");
-//                 return Ok(Svc::new(mock::MysqlMock::new()));
-//             },
-//             _ => todo!(),
-//         }
-//     }
-// }
-
-
-pub struct MysqlProvider;
 impl Provider for MysqlProvider {
     fn provide(
         &mut self,
         injector: &Injector,
         _request_info: &RequestInfo,
     ) -> InjectResult<runtime_injector::DynSvc> {
-        let config = injector.get::<Svc<dyn IConfig>>()?.storage();
+        if let Some(ref service) = self.result {
+            return Ok(service.clone());
+        }
 
-        match config {
+        let config = injector.get::<Svc<dyn IConfig>>()?.storage();
+        let result = match config {
             Storage::Mock => {
                 info!("using mysql mock");
-                return Ok(Svc::new(MysqlMock::new()));
+                Svc::new(MysqlMock::new()) as DynSvc
             }
             Storage::Mysql(config) => {
                 info!("using mysql");
-                return Ok(Svc::new(Mysql::new(config)));
+                Svc::new(Mysql::new(config)) as DynSvc
             }
-        }
+        };
+
+        self.result = Some(result.clone());
+        Ok(result)
     }
 
     fn result(&self) -> ServiceInfo {

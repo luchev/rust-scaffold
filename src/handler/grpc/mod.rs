@@ -1,23 +1,25 @@
-mod init;
-mod inner;
+pub mod init;
+pub mod inner;
 
-use std::net::SocketAddr;
-use inner::Inner;
-use std::time::Duration;
-use init::app_grpc::app_service_server::AppServiceServer;
+use crate::config::IConfig;
+use crate::util::consts::{GRPC_TIMEOUT, LOCALHOST};
+use crate::util::errors::{ErrorKind, Result};
+use async_trait::async_trait;
+use init::app_grpc::app_service_server::{AppService, AppServiceServer};
+use init::app_grpc::PingRequest;
+use inner::GrpcInnerHandler;
 use log::info;
 use runtime_injector::{
     interface, InjectResult, Injector, RequestInfo, Service, ServiceFactory, Svc,
 };
+use std::borrow::BorrowMut;
+use std::net::SocketAddr;
+use std::sync::Arc;
+use std::time::Duration;
 use tokio::net::TcpListener;
-use tonic::transport::Server;
-use crate::config::{IConfig, Log};
-use crate::controller::ping::IPing;
-use crate::util::errors::{ErrorKind, Result};
-use crate::mysql::IMysql;
-use crate::util::consts::{GRPC_TIMEOUT, LOCALHOST};
 use tokio_stream::wrappers::TcpListenerStream;
-use async_trait::async_trait;
+use tonic::transport::Server;
+use tonic::{IntoRequest, Request};
 
 #[async_trait]
 pub trait IGrpc: Service {
@@ -41,18 +43,13 @@ impl ServiceFactory<()> for GrpcProvider {
     ) -> InjectResult<Self::Result> {
         let port = injector.get::<Svc<dyn IConfig>>()?.grpc().port;
         let log = injector.get::<Svc<dyn IConfig>>()?.log().handler;
-        let controller = injector.get::<Svc<dyn IPing>>()?;
-
-        Ok(GrpcHandler {
-            inner: Inner::new(controller, log),
-            port,
-            log,
-        })
+        let inner = injector.get::<GrpcInnerHandler>()?;
+        Ok(GrpcHandler { inner, port, log })
     }
 }
 
 pub struct GrpcHandler {
-    inner: Inner,
+    inner: GrpcInnerHandler,
     port: u16,
     log: bool,
 }
@@ -62,14 +59,14 @@ impl IGrpc for GrpcHandler {
     async fn start(&self) -> Result<()> {
         let addr = format!("{}:{}", LOCALHOST, self.port)
             .parse::<SocketAddr>()
-            .map_err(|e| ErrorKind::Generic(format!("parsing grpc address error: {}", e.to_string())))?;
+            .map_err(|e| {
+                ErrorKind::Generic(format!("parsing grpc address error: {}", e.to_string()))
+            })?;
 
         let listener = TcpListener::bind(addr)
             .await
             .map_err(|e| ErrorKind::Io(e))?;
-        let real_addr = listener
-            .local_addr()
-            .map_err(|e| ErrorKind::Io(e))?;
+        let real_addr = listener.local_addr().map_err(|e| ErrorKind::Io(e))?;
 
         if self.log {
             info!("grpc listening on {}", real_addr);
@@ -83,7 +80,7 @@ impl IGrpc for GrpcHandler {
         Server::builder()
             .layer(middleware)
             .add_service(
-                AppServiceServer::new(self.inner.clone())
+                AppServiceServer::new(self.inner.to_owned())
                     .max_decoding_message_size(1024 * 1024 * 1024)
                     .max_encoding_message_size(1024 * 1024 * 1024),
             )

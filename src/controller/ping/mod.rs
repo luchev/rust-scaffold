@@ -4,19 +4,19 @@ use runtime_injector::{interface, InjectResult, Injector, RequestInfo, Service, 
 use crate::{mysql::IMysql, util::errors::Result};
 
 #[async_trait]
-pub trait IPing: Service {
+pub trait ILocalController: Service {
     async fn ping(&self) -> Result<()>;
 }
 
 interface! {
-    dyn IPing = [
-        Ping,
+    dyn ILocalController = [
+        LocalController,
     ]
 }
 
 pub struct PingProvider;
 impl ServiceFactory<()> for PingProvider {
-    type Result = Ping;
+    type Result = LocalController;
 
     fn invoke(
         &mut self,
@@ -24,18 +24,17 @@ impl ServiceFactory<()> for PingProvider {
         _request_info: &RequestInfo,
     ) -> InjectResult<Self::Result> {
         let mysql = injector.get::<Svc<dyn IMysql>>()?;
-        let mysql2 = injector.get::<Svc<dyn IMysql>>()?;
 
-        Ok(Ping { mysql })
+        Ok(LocalController { mysql })
     }
 }
 
-pub struct Ping {
+pub struct LocalController {
     mysql: Svc<dyn IMysql>,
 }
 
 #[async_trait]
-impl IPing for Ping {
+impl ILocalController for LocalController {
     async fn ping(&self) -> Result<()> {
         self.mysql.ping().await
     }

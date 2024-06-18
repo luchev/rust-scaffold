@@ -22,7 +22,6 @@ impl IMysql for MysqlMock {
 
     async fn ping(&self) -> Result<()> {
         println!("mysql mock ping");
-        // Err("ping error".into())
         Ok(())
     }
 }
