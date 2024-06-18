@@ -1,0 +1,12 @@
+storage:
+  type: mysql
+  host: localhost
+  port: 0
+  username: dummy
+  password: dummy
+  db_name: dummy
+grpc:
+  port: 2000
+log:
+  handler: false
+  controller: false

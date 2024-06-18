@@ -1,0 +1,12 @@
+syntax = "proto3";
+package app_grpc;
+
+message PingRequest {
+}
+
+message PingResponse {
+}
+
+service AppService {
+    rpc Ping(PingRequest) returns (PingResponse);
+}
