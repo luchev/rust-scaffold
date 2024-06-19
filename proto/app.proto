@@ -7,6 +7,14 @@ message PingRequest {
 message PingResponse {
 }
 
+message PingRemoteRequest {
+    string peer = 1;
+}
+
+message PingRemoteResponse {
+}
+
 service AppService {
     rpc Ping(PingRequest) returns (PingResponse);
+    rpc PingRemote(PingRemoteRequest) returns (PingRemoteResponse);
 }

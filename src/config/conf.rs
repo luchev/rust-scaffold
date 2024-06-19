@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use super::{Grpc, IConfig, Log, Mysql, Storage};
+use super::*;
 
 #[derive(Debug, Deserialize, Serialize, Default, Clone)]
 pub struct Config {

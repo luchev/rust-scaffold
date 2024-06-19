@@ -1,12 +1,19 @@
 mod conf;
+mod types;
 
+use crate::{
+    util::consts::{BASE_CONFIG, CONFIG_DIR, CONFIG_PREFIX},
+    util::errors::{Error, ErrorKind},
+};
 use conf::Config;
 use config::{Environment, File};
 use log::info;
-use runtime_injector::{interface, InjectError, InjectResult, Injector, RequestInfo, Service, ServiceFactory, ServiceInfo};
-use serde::{Deserialize, Serialize};
+use runtime_injector::{
+    interface, InjectError, InjectResult, Injector, RequestInfo, Service, ServiceFactory,
+    ServiceInfo,
+};
 use std::{env, path::Path};
-use crate::{util::errors::{Error, ErrorKind}, util::consts::{BASE_CONFIG, CONFIG_DIR, CONFIG_PREFIX}};
+pub use types::*;
 
 pub trait IConfig: Service {
     fn grpc(&self) -> Grpc;
@@ -63,41 +70,4 @@ impl ServiceFactory<()> for ConfigProvider {
                 inner: Box::<Error>::new(ErrorKind::ConfigErr(err).into()),
             })
     }
-}
-
-#[derive(Default, Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "snake_case")]
-pub struct Mysql {
-    pub username: String,
-    pub password: String,
-    pub host: String,
-    pub port: u16,
-    pub db_name: String,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum Storage {
-    Mysql(Mysql),
-    Mock
-}
-
-impl Default for Storage {
-    fn default() -> Self {
-        Self::Mock
-    }
-}
-
-
-#[derive(Default, Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "snake_case")]
-pub struct Grpc {
-    pub port: u16,
-}
-
-#[derive(Default, Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "snake_case")]
-pub struct Log {
-    pub handler: bool,
-    pub controller: bool,
 }

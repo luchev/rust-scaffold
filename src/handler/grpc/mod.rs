@@ -1,33 +1,32 @@
 pub mod init;
 pub mod inner;
 
-use crate::config::IConfig;
-use crate::util::consts::{GRPC_TIMEOUT, LOCALHOST};
-use crate::util::errors::{ErrorKind, Result};
+use crate::{
+    config::IConfig,
+    util::{
+        consts::{GRPC_TIMEOUT, LOCALHOST},
+        errors::{ErrorKind, Result},
+    },
+};
 use async_trait::async_trait;
-use init::app_grpc::app_service_server::{AppService, AppServiceServer};
-use init::app_grpc::PingRequest;
+use init::app_grpc::app_service_server::AppServiceServer;
 use inner::GrpcInnerHandler;
 use log::info;
 use runtime_injector::{
     interface, InjectResult, Injector, RequestInfo, Service, ServiceFactory, Svc,
 };
-use std::borrow::BorrowMut;
-use std::net::SocketAddr;
-use std::sync::Arc;
-use std::time::Duration;
+use std::{net::SocketAddr, time::Duration};
 use tokio::net::TcpListener;
 use tokio_stream::wrappers::TcpListenerStream;
 use tonic::transport::Server;
-use tonic::{IntoRequest, Request};
 
 #[async_trait]
-pub trait IGrpc: Service {
+pub trait IGrpcHandler: Service {
     async fn start(&self) -> Result<()>;
 }
 
 interface! {
-    dyn IGrpc = [
+    dyn IGrpcHandler = [
         GrpcHandler,
     ]
 }
@@ -55,7 +54,7 @@ pub struct GrpcHandler {
 }
 
 #[async_trait]
-impl IGrpc for GrpcHandler {
+impl IGrpcHandler for GrpcHandler {
     async fn start(&self) -> Result<()> {
         let addr = format!("{}:{}", LOCALHOST, self.port)
             .parse::<SocketAddr>()

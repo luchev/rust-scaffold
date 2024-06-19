@@ -1,16 +1,15 @@
-use std::{fs::remove_file, future::Future};
 use app::{
     di::dependency_injector,
     handler::grpc::{
         init::app_grpc::{
-            app_service_client::AppServiceClient, app_service_server::AppServiceServer,
-            PingRequest, PingResponse,
+            app_service_client::AppServiceClient, app_service_server::AppServiceServer, PingRemoteRequest, PingRemoteResponse, PingRequest, PingResponse
         },
         inner::GrpcInnerHandler,
     },
 };
 use runtime_injector::Injector;
-use std::sync::Arc;
+use std::{env, sync::Arc};
+use std::{fs::remove_file, future::Future};
 use tempfile::NamedTempFile;
 use tokio::net::{UnixListener, UnixStream};
 use tokio_stream::wrappers::UnixListenerStream;
@@ -54,7 +53,9 @@ async fn server_and_client_stub(
 
 // The actual test is here
 #[tokio::test]
-async fn add_merchant_test() {
+async fn test_local_ping() {
+    env::set_var("ENV", "test");
+
     let di = dependency_injector().unwrap();
     let (serve_future, mut client) = server_and_client_stub(di).await;
 
@@ -68,3 +69,25 @@ async fn add_merchant_test() {
         _ = request_future => (),
     }
 }
+
+// #[tokio::test]
+// async fn test_remote_ping() {
+//     let di = dependency_injector().unwrap();
+//     let (serve_future, mut client) = server_and_client_stub(di).await;
+
+//     let request_future = async {
+//         let response = client
+//             .ping_remote(PingRemoteRequest {
+//                 peer: "QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N".to_string(),
+//             })
+//             .await
+//             .unwrap()
+//             .into_inner();
+//         assert_eq!(response, PingRemoteResponse {});
+//     };
+
+//     tokio::select! {
+//         _ = serve_future => panic!("server returned first"),
+//         _ = request_future => (),
+//     }
+// }

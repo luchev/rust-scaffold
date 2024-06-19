@@ -18,6 +18,16 @@ ping:
     "[::1]:2000" \
     app_grpc.AppService/Ping
 
+ping-remote:
+    grpcurl \
+    -plaintext \
+    -import-path proto \
+    -proto app.proto \
+    -d "{\"peer\": \"QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N\"}" \
+    "[::1]:2000" \
+    app_grpc.AppService/PingRemote
+
+
 run env:
     ENV={{env}} RUST_LOG=info cargo run
 

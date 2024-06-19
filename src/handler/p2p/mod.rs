@@ -1,31 +1,33 @@
-use crate::util::errors::Result as Res;
-use crate::util::types::CommandToSwarm;
+use crate::util::{errors::Result as Res, types::{CommandToSwarm, QueryPingResponse}};
 use async_trait::async_trait;
-use libp2p::futures::StreamExt;
-use libp2p::identity::Keypair;
-use libp2p::request_response::ProtocolSupport;
-use libp2p::swarm::NetworkBehaviour;
-use libp2p::{noise, request_response, yamux};
-use libp2p::{tcp, StreamProtocol, SwarmBuilder};
+use libp2p::{
+    futures::StreamExt,
+    identity::Keypair,
+    noise,
+    request_response::{self, ProtocolSupport},
+    swarm::NetworkBehaviour,
+    tcp, yamux, StreamProtocol, SwarmBuilder,
+};
 use log::info;
 use runtime_injector::{
     interface, InjectError, InjectResult, Injector, RequestInfo, Service, ServiceFactory,
     ServiceInfo, Svc,
 };
 use serde::{Deserialize, Serialize};
-use tokio::select;
-use tokio::sync::mpsc::Receiver;
-use tokio::sync::Mutex;
+use tokio::{
+    select,
+    sync::{mpsc::Receiver, Mutex, oneshot},
+};
+
+#[async_trait]
+pub trait ISwarm: Service {
+    async fn start(&self) -> Res<()>;
+}
 
 interface! {
     dyn ISwarm = [
         Swarm,
     ]
-}
-
-#[async_trait]
-pub trait ISwarm: Service {
-    async fn start(&self) -> Res<()>;
 }
 
 pub struct Swarm {
@@ -106,8 +108,17 @@ impl ISwarm for Swarm {
         let mut receiver = self.commands_from_controller.lock().await;
         loop {
             select! {
-                _instruction = receiver.recv() => {
+                instruction = receiver.recv() => {
                     info!("Received instruction from controller");
+                    match instruction {
+                        Some(CommandToSwarm::Ping { resp, peer: _ }) => {
+                            info!("Received ping instruction");
+                            let (sender, receiver) = oneshot::channel::<Res<QueryPingResponse>>();
+                            resp.send(receiver).unwrap();
+                            sender.send(Ok(QueryPingResponse{})).unwrap();
+                        },
+                        _ => {},
+                    };
                 },
                 _event = swarm.select_next_some() => {
                     info!("Received event from swarm");

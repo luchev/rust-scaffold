@@ -1,19 +1,30 @@
 #![feature(trait_upcasting)]
 #![feature(trivial_bounds)]
 
-use config::IConfig;
+pub mod config;
+pub mod controller;
+pub mod di;
+pub mod handler;
+pub mod mysql;
+pub mod util;
+pub mod mapper;
+
+use crate::handler::grpc::IGrpcHandler;
 use di::dependency_injector;
 use handler::p2p::ISwarm;
-use util::errors::{die, Result};
-use log::info;
 use runtime_injector::Svc;
 use tokio::try_join;
-use crate::handler::grpc::IGrpc;
+use util::errors::{die, Result};
 
+pub async fn run() -> Result<()> {
+    env_logger::init();
+    let injector = dependency_injector()?;
+    let grpc_handler: Svc<dyn IGrpcHandler> = injector.get()?;
+    let swarm: Svc<dyn ISwarm> = injector.get()?;
 
-pub mod di;
-pub mod config;
-pub mod util;
-pub mod mysql;
-pub mod handler;
-pub mod controller;
+    match try_join!(grpc_handler.start(), swarm.start(),) {
+        Err(err) => die(err),
+        _ => {}
+    };
+    Ok(())
+}

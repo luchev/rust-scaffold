@@ -1,8 +1,7 @@
 use runtime_injector::{constant, define_module, IntoSingleton};
 use tokio::sync::{mpsc::channel, Mutex};
-
 use crate::{
-    controller::swarm::{IRemoteController, SwarmControllerProvider}, handler::p2p::{ISwarm, SwarmProvider},
+    controller::remote::{IRemoteController, SwarmControllerProvider}, handler::p2p::{ISwarm, SwarmProvider},
     util::types::CommandToSwarm,
 };
 

@@ -1,8 +1,9 @@
 use config::ConfigError;
 use error_chain::{error_chain, ExitCode};
+use libp2p::identity::ParseError;
+use log::error;
 use runtime_injector::InjectError;
 use std::{io, process::exit};
-use log::error;
 
 trait ErrorHelper {
     fn help(&self) -> String;
@@ -23,6 +24,7 @@ error_chain! {
         Io(e: io::Error) { display("io error: {}", e) }
         DIError(e: String) { display("di error: {}", e) }
         TonicTransportError(e: tonic::transport::Error) { display("tonic transport error: {}", e) }
+        MappingError(e: String) { display("mapping error: {}", e) }
     }
 }
 
@@ -68,15 +70,20 @@ impl From<runtime_injector::InjectError> for Error {
                 inner
             ))
             .into(),
-            InjectError::CycleDetected { service_info, cycle } => ErrorKind::DIError(format!(
+            InjectError::CycleDetected {
+                service_info,
+                cycle,
+            } => ErrorKind::DIError(format!(
                 "cycle detected for service {}: {:?}",
                 service_info.name(),
                 cycle
-            )).into(),
+            ))
+            .into(),
             InjectError::MissingProvider { service_info } => ErrorKind::DIError(format!(
                 "missing provider for service {}",
                 service_info.name()
-            )).into(),
+            ))
+            .into(),
             _ => ErrorKind::DIError("unknown error".to_string()).into(),
         }
     }
@@ -85,5 +92,11 @@ impl From<runtime_injector::InjectError> for Error {
 impl From<tonic::transport::Error> for Error {
     fn from(e: tonic::transport::Error) -> Self {
         ErrorKind::TonicTransportError(e).into()
+    }
+}
+
+impl From<ParseError> for Error {
+    fn from(e: ParseError) -> Self {
+        ErrorKind::MappingError(e.to_string()).into()
     }
 }

@@ -1,2 +1,2 @@
-pub mod ping;
-pub mod swarm;
+pub mod local;
+pub mod remote;

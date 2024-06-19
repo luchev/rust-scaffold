@@ -1,0 +1,4 @@
+storage:
+  type: mock
+log:
+  handler: true
