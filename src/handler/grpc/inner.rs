@@ -12,30 +12,30 @@ use tonic::{Request, Response, Status};
 
 interface! {
     dyn AppService = [
-        GrpcInnerHandler,
+        GrpcHandler,
     ]
 }
 
-pub struct GrpcInnerProvider;
-impl ServiceFactory<()> for GrpcInnerProvider {
-    type Result = GrpcInnerHandler;
+pub struct GrpcHandlerProvider;
+impl ServiceFactory<()> for GrpcHandlerProvider {
+    type Result = GrpcHandler;
 
     fn invoke(
         &mut self,
         injector: &Injector,
         _request_info: &RequestInfo,
     ) -> InjectResult<Self::Result> {
-        GrpcInnerHandler::request(injector, _request_info)
+        GrpcHandler::request(injector, _request_info)
     }
 }
 
-impl InjectorRequest for GrpcInnerHandler {
+impl InjectorRequest for GrpcHandler {
     fn request(injector: &Injector, _info: &RequestInfo) -> InjectResult<Self> {
         let log = injector.get::<Svc<dyn IConfig>>()?.log().handler;
         let local_controller = injector.get::<Svc<dyn ILocalController>>()?;
         let remote_controller = injector.get::<Svc<dyn IRemoteController>>()?;
         let mapper = injector.get::<Svc<dyn IMapper>>()?;
-        Ok(GrpcInnerHandler {
+        Ok(GrpcHandler {
             local_controller,
             remote_controller,
             mapper,
@@ -45,7 +45,7 @@ impl InjectorRequest for GrpcInnerHandler {
 }
 
 #[derive(Clone)]
-pub struct GrpcInnerHandler {
+pub struct GrpcHandler {
     local_controller: Svc<dyn ILocalController>,
     remote_controller: Svc<dyn IRemoteController>,
     mapper: Svc<dyn IMapper>,
@@ -53,7 +53,7 @@ pub struct GrpcInnerHandler {
 }
 
 #[async_trait]
-impl AppService for GrpcInnerHandler {
+impl AppService for GrpcHandler {
     async fn ping(
         &self,
         request: Request<PingRequest>,

@@ -4,7 +4,7 @@ use app::{
         init::app_grpc::{
             app_service_client::AppServiceClient, app_service_server::AppServiceServer, PingRemoteRequest, PingRemoteResponse, PingRequest, PingResponse
         },
-        inner::GrpcInnerHandler,
+        inner::GrpcHandler,
     },
 };
 use runtime_injector::Injector;
@@ -26,7 +26,7 @@ async fn server_and_client_stub(
     let uds = UnixListener::bind(&*socket).unwrap();
     let stream = UnixListenerStream::new(uds);
 
-    let grpc_inner = injector.get::<GrpcInnerHandler>().unwrap();
+    let grpc_inner = injector.get::<GrpcHandler>().unwrap();
 
     let serve_future = async move {
         let result = Server::builder()

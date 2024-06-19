@@ -10,7 +10,7 @@ use crate::{
 };
 use async_trait::async_trait;
 use init::app_grpc::app_service_server::AppServiceServer;
-use inner::GrpcInnerHandler;
+use inner::GrpcHandler;
 use log::info;
 use runtime_injector::{
     interface, InjectResult, Injector, RequestInfo, Service, ServiceFactory, Svc,
@@ -21,19 +21,19 @@ use tokio_stream::wrappers::TcpListenerStream;
 use tonic::transport::Server;
 
 #[async_trait]
-pub trait IGrpcHandler: Service {
+pub trait IGrpcService: Service {
     async fn start(&self) -> Result<()>;
 }
 
 interface! {
-    dyn IGrpcHandler = [
-        GrpcHandler,
+    dyn IGrpcService = [
+        GrpcService,
     ]
 }
 
-pub struct GrpcProvider;
-impl ServiceFactory<()> for GrpcProvider {
-    type Result = GrpcHandler;
+pub struct GrpcServiceProvider;
+impl ServiceFactory<()> for GrpcServiceProvider {
+    type Result = GrpcService;
 
     fn invoke(
         &mut self,
@@ -42,19 +42,19 @@ impl ServiceFactory<()> for GrpcProvider {
     ) -> InjectResult<Self::Result> {
         let port = injector.get::<Svc<dyn IConfig>>()?.grpc().port;
         let log = injector.get::<Svc<dyn IConfig>>()?.log().handler;
-        let inner = injector.get::<GrpcInnerHandler>()?;
-        Ok(GrpcHandler { inner, port, log })
+        let inner = injector.get::<GrpcHandler>()?;
+        Ok(GrpcService { inner, port, log })
     }
 }
 
-pub struct GrpcHandler {
-    inner: GrpcInnerHandler,
+pub struct GrpcService {
+    inner: GrpcHandler,
     port: u16,
     log: bool,
 }
 
 #[async_trait]
-impl IGrpcHandler for GrpcHandler {
+impl IGrpcService for GrpcService {
     async fn start(&self) -> Result<()> {
         let addr = format!("{}:{}", LOCALHOST, self.port)
             .parse::<SocketAddr>()

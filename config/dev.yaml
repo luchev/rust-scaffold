@@ -1,10 +1,4 @@
 storage:
   type: mock
-mysql:
-  host: localhost
-  port: 3307
-  username: root
-  password: password
-  db_name: db
 log:
   handler: true

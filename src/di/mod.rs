@@ -3,7 +3,7 @@ mod p2p;
 
 use crate::{
     config::{ConfigProvider, IConfig},
-    controller::local::{ILocalController, PingProvider},
+    controller::local::{ILocalController, LocalControllerProvider},
     mapper::{IMapper, MapperProvider},
     mysql:: MysqlProvider,
     util::errors::Result,
@@ -15,7 +15,7 @@ pub fn dependency_injector() -> Result<Injector> {
 
     injector.provide(ConfigProvider.singleton().with_interface::<dyn IConfig>());
     injector.provide(
-        PingProvider
+        LocalControllerProvider
             .singleton()
             .with_interface::<dyn ILocalController>(),
     );

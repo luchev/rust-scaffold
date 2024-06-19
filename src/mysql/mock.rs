@@ -4,9 +4,7 @@ use super::IMysql;
 use crate::util::errors::Result;
 use async_trait::async_trait;
 
-pub struct MysqlMock {
-    _pings: HashMap<String, i32>,
-}
+pub struct MysqlMock { _pings: HashMap<String, i32> }
 
 impl MysqlMock {
     pub fn new() -> Self {

@@ -14,8 +14,8 @@ interface! {
     ]
 }
 
-pub struct PingProvider;
-impl ServiceFactory<()> for PingProvider {
+pub struct LocalControllerProvider;
+impl ServiceFactory<()> for LocalControllerProvider {
     type Result = LocalController;
 
     fn invoke(
